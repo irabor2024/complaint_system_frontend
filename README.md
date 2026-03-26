@@ -1,73 +1,86 @@
-# Welcome to your Lovable project
+## Hospital Complaint Management System
 
-## Project info
+A role-based web application for managing hospital complaints end-to-end.
+Patients can submit and track complaints, staff can review and update assigned cases, and admins can monitor overall performance through dashboards and analytics.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Features
 
-## How can I edit this code?
+- Patient complaint submission with generated ticket IDs (`CMP-2026-XXXX`)
+- Public complaint tracking by ticket ID
+- Staff dashboard for assigned complaints and status updates
+- Admin dashboard for complaint oversight, departments, staff, and analytics
+- Status timeline, priorities, notifications, and response history
+- Responsive UI built with reusable components
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- React 18 + TypeScript
+- Vite 5
+- Tailwind CSS + shadcn/ui + Radix UI
+- React Router
+- TanStack Query
+- Vitest + Testing Library
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Important Note
 
-Changes made via Lovable will be committed automatically to this repo.
+This project currently uses **mock in-memory data/services** (`src/mock-data` and `src/services/api.ts`).
+Data resets on page refresh or app restart, and no real backend/database is connected yet.
 
-**Use your preferred IDE**
+## Getting Started
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Prerequisites
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- Node.js 18+ (recommended)
+- npm 9+ (or compatible)
 
-Follow these steps:
+### Installation
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+```bash
+npm install
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Run Development Server
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The app runs on `http://localhost:8080`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Available Scripts
 
-**Use GitHub Codespaces**
+- `npm run dev` - Start Vite dev server
+- `npm run build` - Build production bundle
+- `npm run build:dev` - Build in development mode
+- `npm run preview` - Preview production build locally
+- `npm run lint` - Run ESLint
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## What technologies are used for this project?
+## Main Routes
 
-This project is built with:
+- `/` - Landing page
+- `/submit-complaint` - Complaint submission form
+- `/track` - Complaint tracking page
+- `/staff` - Staff area (dashboard and complaint management)
+- `/admin` - Admin area (dashboard, complaints, departments, staff, analytics, settings)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Project Structure
 
-## How can I deploy this project?
+```text
+src/
+  components/       Reusable UI and feature components
+  hooks/            Auth, utility, and UI hooks
+  layouts/          Admin and staff layout wrappers
+  mock-data/        Seeded demo data
+  pages/            Route-level pages
+  services/         API-like service layer (mocked)
+  types/            Shared TypeScript types
+```
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Next Improvements
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- Replace mock services with real REST/GraphQL APIs
+- Add authentication/authorization with protected routes
+- Persist data with a database
+- Add end-to-end tests and CI checks
+- Update SEO metadata in `index.html` to match this project

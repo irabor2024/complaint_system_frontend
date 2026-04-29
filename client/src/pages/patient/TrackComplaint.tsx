@@ -1,27 +1,52 @@
 import { useState } from 'react';
-import { complaints } from '@/mock-data/complaints';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, CheckCircle, Clock, Circle } from 'lucide-react';
+import { Search, CheckCircle, Circle } from 'lucide-react';
 import AnimatedPage from '@/components/AnimatedPage';
-const statusColors: Record<string, string> = {
-  submitted: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
-  'in-progress': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
-  'under-review': 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
-  resolved: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-  closed: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-};
+import { complaintService } from '@/services/api';
+import type { Complaint } from '@/types';
+import { complaintStatusBadgeClass } from '@/lib/complaintUi';
+import { ApiRequestError } from '@/lib/apiClient';
+import { toast } from 'sonner';
 
 export default function TrackComplaint() {
   const [query, setQuery] = useState('');
-  const [result, setResult] = useState<typeof complaints[0] | null>(null);
+  const [result, setResult] = useState<Complaint | null>(null);
   const [searched, setSearched] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
+    const q = query.trim();
     setSearched(true);
-    const found = complaints.find(c => c.ticketId.toLowerCase() === query.trim().toLowerCase());
-    setResult(found || null);
+    setLoading(true);
+    setResult(null);
+    try {
+      const found = await complaintService.getByTicketId(q);
+      setResult(found ?? null);
+      if (!found) toast.info('No complaint found for this ticket ID');
+    } catch (e) {
+      if (e instanceof ApiRequestError && e.status === 404) {
+        setResult(null);
+      } else {
+        toast.error(e instanceof ApiRequestError ? e.message : 'Lookup failed');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const timelineFromComplaint = (c: Complaint) => {
+    const items: { note: string; date: string }[] = [
+      { note: `Submitted — ${c.status === 'Submitted' ? 'current' : 'completed'}`, date: c.createdAt },
+    ];
+    c.responses.forEach(r => {
+      items.push({
+        note: r.statusChange ? `Status: ${r.statusChange}` : r.message.slice(0, 80),
+        date: r.createdAt,
+      });
+    });
+    return items;
   };
 
   return (
@@ -36,15 +61,17 @@ export default function TrackComplaint() {
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <Input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                placeholder="Enter Ticket ID (e.g., TKT-1001)" className="pl-9 rounded-xl w-full" />
+              <Input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && void handleSearch()}
+                placeholder="e.g. CMP-2026-0001" className="pl-9 rounded-xl w-full" />
             </div>
-            <Button onClick={handleSearch} className="rounded-xl w-full sm:w-auto shrink-0">Track</Button>
+            <Button onClick={() => void handleSearch()} className="rounded-xl w-full sm:w-auto shrink-0" disabled={loading}>
+              {loading ? 'Searching…' : 'Track'}
+            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {searched && !result && (
+      {searched && !result && !loading && (
         <Card className="rounded-2xl">
           <CardContent className="p-6 sm:p-8 text-center">
             <p className="text-muted-foreground">No complaint found with that ticket ID. Please check and try again.</p>
@@ -60,7 +87,7 @@ export default function TrackComplaint() {
                 <h2 className="text-base sm:text-lg font-bold text-foreground break-all">{result.ticketId}</h2>
                 <p className="text-sm text-muted-foreground mt-1 break-words">{result.category} • {result.department}</p>
               </div>
-              <span className={`text-xs px-3 py-1 rounded-full font-medium shrink-0 self-start ${statusColors[result.status]}`}>{result.status}</span>
+              <span className={`text-xs px-3 py-1 rounded-full font-medium shrink-0 self-start ${complaintStatusBadgeClass(result.status)}`}>{result.status}</span>
             </div>
 
             <div className="grid sm:grid-cols-2 gap-4 text-sm">
@@ -73,44 +100,44 @@ export default function TrackComplaint() {
               <p className="text-sm text-foreground">{result.description}</p>
             </div>
 
-            {/* Timeline */}
             <div>
-              <p className="text-sm font-medium text-foreground mb-3">Status Timeline</p>
+              <p className="text-sm font-medium text-foreground mb-3">Activity</p>
               <div className="space-y-4">
-                {result.timeline.map((t, i) => (
-                  <div key={i} className="flex gap-3">
+                {timelineFromComplaint(result).map((t, i, arr) => (
+                  <div key={`${t.date}-${i}`} className="flex gap-3">
                     <div className="flex flex-col items-center">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center ${i === result.timeline.length - 1 ? 'bg-primary' : 'bg-muted'}`}>
-                        {t.status === 'resolved' || t.status === 'closed' ? (
-                          <CheckCircle className={`w-3.5 h-3.5 ${i === result.timeline.length - 1 ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center ${i === arr.length - 1 ? 'bg-primary' : 'bg-muted'}`}>
+                        {i === arr.length - 1 ? (
+                          <CheckCircle className={`w-3.5 h-3.5 ${i === arr.length - 1 ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
                         ) : (
-                          <Circle className={`w-3 h-3 ${i === result.timeline.length - 1 ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
+                          <Circle className={`w-3 h-3 text-muted-foreground`} />
                         )}
                       </div>
-                      {i < result.timeline.length - 1 && <div className="w-px h-6 bg-border mt-1" />}
+                      {i < arr.length - 1 && <div className="w-px h-6 bg-border mt-1" />}
                     </div>
                     <div>
                       <p className="text-sm font-medium text-foreground">{t.note}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(t.date).toLocaleDateString()}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(t.date).toLocaleString()}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Responses */}
             {result.responses.length > 0 && (
               <div>
                 <p className="text-sm font-medium text-foreground mb-3">Staff Responses</p>
-                {result.responses.map(r => (
-                  <div key={r.id} className="bg-muted rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-foreground">{r.by}</span>
-                      <span className="text-xs text-muted-foreground">{new Date(r.date).toLocaleDateString()}</span>
+                <div className="space-y-2">
+                  {result.responses.map(r => (
+                    <div key={r.id} className="bg-muted rounded-xl p-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-foreground">{r.responderName}</span>
+                        <span className="text-xs text-muted-foreground">{new Date(r.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{r.message}</p>
                     </div>
-                    <p className="text-sm text-muted-foreground">{r.message}</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
           </CardContent>

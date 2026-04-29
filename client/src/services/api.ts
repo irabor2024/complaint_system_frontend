@@ -1,103 +1,137 @@
-import { complaints, staffMembers, notifications } from '@/mock-data';
-import { Complaint, ComplaintFormData, ComplaintStatus, StaffMember, Notification } from '@/types';
+import { apiFetch, apiFetchOptional } from '@/lib/apiClient';
+import type {
+  Complaint,
+  ComplaintFormData,
+  ComplaintStatus,
+  DepartmentEntity,
+  Notification,
+  StaffMember,
+} from '@/types';
 
-let localComplaints = [...complaints];
-let localNotifications = [...notifications];
-let nextId = localComplaints.length + 1;
+export { getToken, setToken } from '@/lib/apiClient';
+export { ApiRequestError } from '@/lib/apiClient';
 
 export const complaintService = {
-  getAll: (): Promise<Complaint[]> => Promise.resolve([...localComplaints]),
+  getAll: (): Promise<Complaint[]> => apiFetch<Complaint[]>('/complaints'),
 
   getById: (id: string): Promise<Complaint | undefined> =>
-    Promise.resolve(localComplaints.find(c => c.id === id)),
+    apiFetchOptional<Complaint>(`/complaints/${encodeURIComponent(id)}`),
 
   getByTicketId: (ticketId: string): Promise<Complaint | undefined> =>
-    Promise.resolve(localComplaints.find(c => c.ticketId.toLowerCase() === ticketId.toLowerCase())),
+    apiFetchOptional<Complaint>(`/complaints/track/${encodeURIComponent(ticketId)}`, { skipAuth: true }),
 
-  getByStaffId: (staffId: string): Promise<Complaint[]> =>
-    Promise.resolve(localComplaints.filter(c => c.assignedStaffId === staffId)),
-
-  submit: (data: ComplaintFormData): Promise<Complaint> => {
-    nextId++;
-    const ticketNum = String(nextId).padStart(4, '0');
-    const complaint: Complaint = {
-      id: `c${nextId}`,
-      ticketId: `CMP-2026-${ticketNum}`,
-      patientName: data.patientName,
-      email: data.email,
-      phone: data.phone,
-      category: data.category,
-      department: data.department,
-      description: data.description,
-      status: 'Submitted',
-      priority: 'Medium',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      responses: [],
-    };
-    localComplaints = [complaint, ...localComplaints];
-    return Promise.resolve(complaint);
+  getByStaffId: async (staffId: string): Promise<Complaint[]> => {
+    const all = await complaintService.getAll();
+    return all.filter(c => c.assignedStaffId === staffId);
   },
 
-  updateStatus: (id: string, status: ComplaintStatus, responderName: string): Promise<Complaint | undefined> => {
-    const idx = localComplaints.findIndex(c => c.id === id);
-    if (idx === -1) return Promise.resolve(undefined);
-    localComplaints[idx] = {
-      ...localComplaints[idx],
-      status,
-      updatedAt: new Date().toISOString(),
-      responses: [
-        ...localComplaints[idx].responses,
-        {
-          id: `r-${Date.now()}`,
-          complaintId: id,
-          responderId: 's1',
-          responderName,
-          responderRole: 'staff',
-          message: `Status updated to ${status}.`,
-          createdAt: new Date().toISOString(),
-          statusChange: status,
-        },
-      ],
-    };
-    return Promise.resolve(localComplaints[idx]);
-  },
+  submit: (data: ComplaintFormData): Promise<Complaint> =>
+    apiFetch<Complaint>('/complaints', {
+      method: 'POST',
+      skipAuth: true,
+      body: JSON.stringify({
+        patientName: data.patientName,
+        email: data.email,
+        phone: data.phone?.trim() || '000-000-0000',
+        category: data.category,
+        departmentId: data.departmentId,
+        description: data.description,
+      }),
+    }),
 
-  addResponse: (id: string, message: string, responderName: string): Promise<Complaint | undefined> => {
-    const idx = localComplaints.findIndex(c => c.id === id);
-    if (idx === -1) return Promise.resolve(undefined);
-    localComplaints[idx] = {
-      ...localComplaints[idx],
-      updatedAt: new Date().toISOString(),
-      responses: [
-        ...localComplaints[idx].responses,
-        {
-          id: `r-${Date.now()}`,
-          complaintId: id,
-          responderId: 's1',
-          responderName,
-          responderRole: 'staff',
-          message,
-          createdAt: new Date().toISOString(),
-        },
-      ],
-    };
-    return Promise.resolve(localComplaints[idx]);
-  },
+  updateStatus: (id: string, status: ComplaintStatus): Promise<Complaint> =>
+    apiFetch<Complaint>(`/complaints/${encodeURIComponent(id)}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+
+  addResponse: (id: string, message: string): Promise<Complaint> =>
+    apiFetch<Complaint>(`/complaints/${encodeURIComponent(id)}/responses`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    }),
+
+  assignStaff: (id: string, staffUserId: string): Promise<Complaint> =>
+    apiFetch<Complaint>(`/complaints/${encodeURIComponent(id)}/assign`, {
+      method: 'PATCH',
+      body: JSON.stringify({ staffUserId }),
+    }),
+
+  setPriority: (id: string, priority: Complaint['priority']): Promise<Complaint> =>
+    apiFetch<Complaint>(`/complaints/${encodeURIComponent(id)}/priority`, {
+      method: 'PATCH',
+      body: JSON.stringify({ priority }),
+    }),
+};
+
+export const departmentService = {
+  list: (): Promise<DepartmentEntity[]> =>
+    apiFetch<DepartmentEntity[]>('/departments', { skipAuth: true }),
+
+  getById: (id: string): Promise<DepartmentEntity> =>
+    apiFetch<DepartmentEntity>(`/departments/${encodeURIComponent(id)}`, { skipAuth: true }),
+
+  create: (body: { name: string; head?: string; description?: string }): Promise<DepartmentEntity> =>
+    apiFetch<DepartmentEntity>('/departments', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  update: (
+    id: string,
+    body: Partial<{ name: string; head: string; description: string; staffCount: number }>
+  ): Promise<DepartmentEntity> =>
+    apiFetch<DepartmentEntity>(`/departments/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  remove: (id: string): Promise<void> =>
+    apiFetch<void>(`/departments/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 };
 
 export const staffService = {
-  getAll: (): Promise<StaffMember[]> => Promise.resolve([...staffMembers]),
-  getById: (id: string): Promise<StaffMember | undefined> =>
-    Promise.resolve(staffMembers.find(s => s.id === id)),
+  getAll: (): Promise<StaffMember[]> => apiFetch<StaffMember[]>('/staff'),
+
+  create: (body: {
+    name: string;
+    email: string;
+    password: string;
+    departmentId: string;
+    jobTitle?: string;
+  }): Promise<StaffMember> =>
+    apiFetch<StaffMember>('/staff', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 };
 
 export const notificationService = {
-  getAll: (): Promise<Notification[]> => Promise.resolve([...localNotifications]),
-  markAsRead: (id: string): Promise<void> => {
-    localNotifications = localNotifications.map(n => n.id === id ? { ...n, read: true } : n);
-    return Promise.resolve();
-  },
+  getAll: (): Promise<Notification[]> => apiFetch<Notification[]>('/notifications'),
+
+  markAsRead: (id: string): Promise<void> =>
+    apiFetch<void>(`/notifications/${encodeURIComponent(id)}/read`, { method: 'PATCH' }),
+
   getUnreadCount: (): Promise<number> =>
-    Promise.resolve(localNotifications.filter(n => !n.read).length),
+    apiFetch<{ count: number }>('/notifications/unread-count').then(r => r.count),
+};
+
+export type AuthUserDto = {
+  id: string;
+  email: string;
+  name: string;
+  role: 'patient' | 'staff' | 'admin';
+  departmentId?: string;
+  jobTitle?: string;
+};
+
+export const authApi = {
+  login: (email: string, password: string): Promise<{ token: string; user: AuthUserDto }> =>
+    apiFetch<{ token: string; user: AuthUserDto }>('/auth/login', {
+      method: 'POST',
+      skipAuth: true,
+      body: JSON.stringify({ email, password }),
+    }),
+
+  me: (): Promise<AuthUserDto> => apiFetch<AuthUserDto>('/auth/me'),
 };

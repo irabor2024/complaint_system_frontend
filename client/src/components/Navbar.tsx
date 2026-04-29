@@ -1,17 +1,19 @@
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { RoleSwitcher } from '@/components/RoleSwitcher';
-import { Bell, Moon, Sun, Menu, X, Activity } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
+import { Moon, Sun, Menu, X, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
 
 export function Navbar() {
-  const { role, isDark, toggleDark } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const { isDark, toggle } = useTheme();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isLanding = location.pathname === '/';
+  const role = user?.role ?? 'patient';
 
   return (
     <nav className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-sm">
@@ -23,53 +25,68 @@ export function Navbar() {
           <span className="text-lg font-bold text-foreground">SmartCare</span>
         </Link>
 
-        {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-4">
           {isLanding && (
             <div className="flex items-center gap-2">
-              <Link to="/submit-complaint">
+              <Link to={isAuthenticated ? '/dashboard/submit' : '/login'}>
                 <Button size="sm">Submit Complaint</Button>
               </Link>
-              <Link to="/track">
+              <Link to={isAuthenticated ? '/dashboard/track' : '/login'}>
                 <Button variant="outline" size="sm">Track Complaint</Button>
               </Link>
             </div>
           )}
-          <RoleSwitcher />
-          <Button variant="ghost" size="icon" onClick={toggleDark}>
+          {isAuthenticated && (
+            <Badge variant="secondary" className="capitalize">
+              {role}
+            </Badge>
+          )}
+          <Button variant="ghost" size="icon" onClick={toggle}>
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
-          {role !== 'patient' && (
-            <Link to={role === 'staff' ? '/staff' : '/admin'}>
+          {isAuthenticated && (
+            <Link to="/dashboard">
               <Button variant="outline" size="sm">Dashboard</Button>
+            </Link>
+          )}
+          {!isAuthenticated && (
+            <Link to="/login">
+              <Button size="sm">Sign in</Button>
             </Link>
           )}
         </div>
 
-        {/* Mobile toggle */}
         <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </Button>
       </div>
 
-      {/* Mobile menu */}
       {mobileOpen && (
         <div className="md:hidden border-t bg-card p-4 space-y-3">
-          <RoleSwitcher />
+          {isAuthenticated && (
+            <div className="flex items-center gap-2 pb-2">
+              <Badge variant="secondary" className="capitalize">{role}</Badge>
+            </div>
+          )}
           <div className="flex flex-col gap-2">
-            <Link to="/submit-complaint" onClick={() => setMobileOpen(false)}>
+            <Link to={isAuthenticated ? '/dashboard/submit' : '/login'} onClick={() => setMobileOpen(false)}>
               <Button className="w-full" size="sm">Submit Complaint</Button>
             </Link>
-            <Link to="/track" onClick={() => setMobileOpen(false)}>
+            <Link to={isAuthenticated ? '/dashboard/track' : '/login'} onClick={() => setMobileOpen(false)}>
               <Button variant="outline" className="w-full" size="sm">Track Complaint</Button>
             </Link>
-            {role !== 'patient' && (
-              <Link to={role === 'staff' ? '/staff' : '/admin'} onClick={() => setMobileOpen(false)}>
+            {isAuthenticated && (
+              <Link to="/dashboard" onClick={() => setMobileOpen(false)}>
                 <Button variant="secondary" className="w-full" size="sm">Dashboard</Button>
               </Link>
             )}
+            {!isAuthenticated && (
+              <Link to="/login" onClick={() => setMobileOpen(false)}>
+                <Button className="w-full" size="sm">Sign in</Button>
+              </Link>
+            )}
           </div>
-          <Button variant="ghost" size="sm" onClick={toggleDark} className="w-full justify-start">
+          <Button variant="ghost" size="sm" onClick={toggle} className="w-full justify-start">
             {isDark ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
             {isDark ? 'Light Mode' : 'Dark Mode'}
           </Button>

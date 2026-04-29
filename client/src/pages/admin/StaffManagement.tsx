@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { staffMembers as initialStaff } from '@/mock-data/staff';
-import { departments } from '@/mock-data/departments';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,16 +7,53 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import AnimatedPage from '@/components/AnimatedPage';
-import type { StaffMember } from '@/types';
+import { staffService, departmentService } from '@/services/api';
+import { ApiRequestError } from '@/lib/apiClient';
 
-const emptyForm = { name: '', email: '', departmentId: '', role: 'Nurse' };
+const emptyForm = { name: '', email: '', password: '', departmentId: '', role: 'Nurse' };
 
 export default function StaffManagement() {
-  const [staff, setStaff] = useState<StaffMember[]>(() => [...initialStaff]);
+  const queryClient = useQueryClient();
+  const { data: staff = [], isPending: staffLoading } = useQuery({
+    queryKey: ['staff'],
+    queryFn: staffService.getAll,
+  });
+  const { data: departments = [] } = useQuery({
+    queryKey: ['departments'],
+    queryFn: departmentService.list,
+  });
+
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
+
+  const filtered = staff.filter(s => {
+    if (search && !s.name.toLowerCase().includes(search.toLowerCase()) && !s.email.toLowerCase().includes(search.toLowerCase())) return false;
+    if (deptFilter && s.departmentId !== deptFilter) return false;
+    return true;
+  });
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      staffService.create({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        departmentId: form.departmentId,
+        jobTitle: form.role.trim() || 'Staff',
+      }),
+    onSuccess: () => {
+      toast.success('Staff member added');
+      queryClient.invalidateQueries({ queryKey: ['staff'] });
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
+      setDialogOpen(false);
+      setForm(emptyForm);
+    },
+    onError: (e: unknown) => {
+      toast.error(e instanceof ApiRequestError ? e.message : 'Could not add staff');
+    },
+  });
 
   const openAddStaff = () => {
     setForm({ ...emptyForm, departmentId: departments[0]?.id ?? '' });
@@ -25,52 +61,24 @@ export default function StaffManagement() {
   };
 
   const handleAddStaff = () => {
-    const name = form.name.trim();
-    const email = form.email.trim().toLowerCase();
-    if (!name) {
+    if (!form.name.trim()) {
       toast.error('Please enter a name');
       return;
     }
-    if (!email || !email.includes('@')) {
+    if (!form.email.includes('@')) {
       toast.error('Please enter a valid email');
+      return;
+    }
+    if (form.password.length < 8) {
+      toast.error('Password must be at least 8 characters');
       return;
     }
     if (!form.departmentId) {
       toast.error('Please select a department');
       return;
     }
-    const role = form.role.trim() || 'Staff';
-    if (staff.some(s => s.email.toLowerCase() === email)) {
-      toast.error('A staff member with this email already exists');
-      return;
-    }
-    const dept = departments.find(d => d.id === form.departmentId);
-    if (!dept) {
-      toast.error('Invalid department');
-      return;
-    }
-    const newMember: StaffMember = {
-      id: `staff-${Date.now()}`,
-      name,
-      email,
-      departmentId: dept.id,
-      department: dept.name,
-      role,
-      assignedComplaints: 0,
-      resolvedComplaints: 0,
-      joinDate: new Date().toISOString().slice(0, 10),
-    };
-    setStaff(prev => [...prev, newMember]);
-    toast.success('Staff member added');
-    setDialogOpen(false);
-    setForm(emptyForm);
+    createMutation.mutate();
   };
-
-  const filtered = staff.filter(s => {
-    if (search && !s.name.toLowerCase().includes(search.toLowerCase()) && !s.email.toLowerCase().includes(search.toLowerCase())) return false;
-    if (deptFilter && s.departmentId !== deptFilter) return false;
-    return true;
-  });
 
   return (
     <AnimatedPage><div className="space-y-6">
@@ -98,6 +106,9 @@ export default function StaffManagement() {
 
       <Card className="rounded-2xl">
         <CardContent className="p-0">
+          {staffLoading ? (
+            <p className="p-6 text-sm text-muted-foreground text-center">Loading staff…</p>
+          ) : (
           <div className="overflow-x-auto -mx-1 px-1 sm:mx-0 sm:px-0">
             <table className="w-full text-sm min-w-[36rem]">
               <thead>
@@ -124,6 +135,7 @@ export default function StaffManagement() {
               </tbody>
             </table>
           </div>
+          )}
         </CardContent>
       </Card>
 
@@ -132,30 +144,21 @@ export default function StaffManagement() {
           <DialogHeader>
             <DialogTitle>Add staff member</DialogTitle>
             <DialogDescription>
-              Create a new staff record. They will appear in the directory and can be assigned to complaints.
+              Creates a staff account they can use to sign in with this email and password.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium mb-1.5 block" htmlFor="staff-name">Full name</label>
-              <Input
-                id="staff-name"
-                value={form.name}
-                onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                className="rounded-xl"
-                placeholder="e.g. Dr. Jane Smith"
-              />
+              <Input id="staff-name" value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="rounded-xl" placeholder="Dr. Jane Smith" />
             </div>
             <div>
               <label className="text-sm font-medium mb-1.5 block" htmlFor="staff-email">Work email</label>
-              <Input
-                id="staff-email"
-                type="email"
-                value={form.email}
-                onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
-                className="rounded-xl"
-                placeholder="name@hospital.com"
-              />
+              <Input id="staff-email" type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} className="rounded-xl" />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block" htmlFor="staff-pass">Initial password</label>
+              <Input id="staff-pass" type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} className="rounded-xl" />
             </div>
             <div>
               <label className="text-sm font-medium mb-1.5 block" htmlFor="staff-dept">Department</label>
@@ -171,16 +174,10 @@ export default function StaffManagement() {
               </select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block" htmlFor="staff-role">Job title / role</label>
-              <Input
-                id="staff-role"
-                value={form.role}
-                onChange={e => setForm(p => ({ ...p, role: e.target.value }))}
-                className="rounded-xl"
-                placeholder="e.g. Nurse, Physician"
-              />
+              <label className="text-sm font-medium mb-1.5 block" htmlFor="staff-role">Job title</label>
+              <Input id="staff-role" value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))} className="rounded-xl" />
             </div>
-            <Button className="w-full rounded-xl" onClick={handleAddStaff}>Add staff member</Button>
+            <Button className="w-full rounded-xl" onClick={handleAddStaff} disabled={createMutation.isPending}>Add staff member</Button>
           </div>
         </DialogContent>
       </Dialog>

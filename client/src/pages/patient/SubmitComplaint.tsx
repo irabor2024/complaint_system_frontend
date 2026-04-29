@@ -1,34 +1,75 @@
 import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { departments } from '@/mock-data/departments';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { CheckCircle } from 'lucide-react';
 import AnimatedPage from '@/components/AnimatedPage';
-const categories = [
-  { value: 'billing', label: 'Billing' },
-  { value: 'treatment', label: 'Treatment' },
-  { value: 'staff-behavior', label: 'Staff Behavior' },
-  { value: 'facilities', label: 'Facilities' },
-  { value: 'wait-time', label: 'Wait Time' },
-  { value: 'other', label: 'Other' },
+import { departmentService, complaintService } from '@/services/api';
+import type { ComplaintCategory } from '@/types';
+import { toast } from 'sonner';
+import { ApiRequestError } from '@/lib/apiClient';
+
+const categories: { value: ComplaintCategory; label: string }[] = [
+  { value: 'Hygiene', label: 'Hygiene' },
+  { value: 'Billing', label: 'Billing' },
+  { value: 'Staff Behavior', label: 'Staff Behavior' },
+  { value: 'Service Delay', label: 'Service Delay' },
+  { value: 'Equipment', label: 'Equipment' },
+  { value: 'Other', label: 'Other' },
 ];
 
 export default function SubmitComplaint() {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', category: '', department: '', priority: 'medium', description: '' });
+  const queryClient = useQueryClient();
+  const { data: departments = [] } = useQuery({
+    queryKey: ['departments'],
+    queryFn: departmentService.list,
+  });
+
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    category: '' as ComplaintCategory | '',
+    departmentId: '',
+    description: '',
+  });
   const [showSuccess, setShowSuccess] = useState(false);
   const [ticketId, setTicketId] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const id = `TKT-${Math.floor(Math.random() * 9000 + 1000)}`;
-    setTicketId(id);
-    setShowSuccess(true);
-    setForm({ name: '', email: '', phone: '', category: '', department: '', priority: 'medium', description: '' });
-  };
+  const submitMutation = useMutation({
+    mutationFn: () =>
+      complaintService.submit({
+        patientName: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        category: form.category as ComplaintCategory,
+        departmentId: form.departmentId,
+        description: form.description.trim(),
+      }),
+    onSuccess: data => {
+      setTicketId(data.ticketId);
+      setShowSuccess(true);
+      setForm({ name: '', email: '', phone: '', category: '', departmentId: '', description: '' });
+      queryClient.invalidateQueries({ queryKey: ['complaints'] });
+    },
+    onError: (e: unknown) => {
+      const msg = e instanceof ApiRequestError ? e.message : 'Could not submit complaint';
+      toast.error(msg);
+    },
+  });
 
   const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.category || !form.departmentId) {
+      toast.error('Please select category and department');
+      return;
+    }
+    submitMutation.mutate();
+  };
 
   return (
     <AnimatedPage><div className="max-w-2xl mx-auto w-full min-w-0 space-y-4 sm:space-y-6 px-0">
@@ -64,21 +105,10 @@ export default function SubmitComplaint() {
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground mb-1.5 block">Department *</label>
-                <select value={form.department} onChange={e => update('department', e.target.value)} className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm" required>
+                <select value={form.departmentId} onChange={e => update('departmentId', e.target.value)} className="w-full h-10 rounded-xl border border-input bg-background px-3 text-sm" required>
                   <option value="">Select department</option>
                   {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                 </select>
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Priority</label>
-              <div className="flex flex-wrap gap-2">
-                {['low', 'medium', 'high'].map(p => (
-                  <button key={p} type="button" onClick={() => update('priority', p)}
-                    className={`flex-1 min-w-[5.5rem] sm:flex-none px-3 sm:px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${form.priority === p ? 'bg-primary text-primary-foreground border-primary' : 'border-input text-muted-foreground hover:bg-accent'}`}>
-                    {p.charAt(0).toUpperCase() + p.slice(1)}
-                  </button>
-                ))}
               </div>
             </div>
             <div>
@@ -89,10 +119,12 @@ export default function SubmitComplaint() {
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Attachments</label>
               <div className="border-2 border-dashed border-border rounded-xl p-4 sm:p-6 text-center text-xs sm:text-sm text-muted-foreground">
-                Drag & drop files here or click to browse
+                Drag & drop files here or click to browse (not wired to API yet)
               </div>
             </div>
-            <Button type="submit" className="w-full rounded-xl" size="lg">Submit Complaint</Button>
+            <Button type="submit" className="w-full rounded-xl" size="lg" disabled={submitMutation.isPending}>
+              {submitMutation.isPending ? 'Submitting…' : 'Submit Complaint'}
+            </Button>
           </form>
         </CardContent>
       </Card>
@@ -108,7 +140,7 @@ export default function SubmitComplaint() {
               Your complaint has been submitted successfully. Your ticket ID is:
             </DialogDescription>
           </DialogHeader>
-          <div className="bg-muted rounded-xl p-4 text-2xl font-bold text-primary">{ticketId}</div>
+          <div className="bg-muted rounded-xl p-4 text-2xl font-bold text-primary break-all">{ticketId}</div>
           <p className="text-sm text-muted-foreground">Save this ID to track your complaint status.</p>
         </DialogContent>
       </Dialog>

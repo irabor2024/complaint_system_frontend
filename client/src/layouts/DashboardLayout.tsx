@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Footer } from '@/components/Footer';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
-import { mockNotifications } from '@/mock-data/notifications';
+import { notificationService } from '@/services/api';
 import { Role } from '@/types';
 import {
   LayoutDashboard, FileText, Search, PlusCircle, Users, Building2, BarChart3,
-  Bell, Sun, Moon, Menu, X, LogOut, ClipboardList, Eye, User, Settings
+  Bell, Sun, Moon, Menu, X, LogOut, ClipboardList, Eye, User, Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 
 const navItems: Record<Role, { label: string; path: string; icon: React.ElementType }[]> = {
   patient: [
@@ -51,9 +53,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const role = user?.role || 'patient';
   const items = navItems[role];
-  const unreadCount = mockNotifications.filter(n => !n.read).length;
 
-  const handleLogout = () => { logout(); navigate('/'); };
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: notificationService.getAll,
+  });
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: ['notifications-unread'],
+    queryFn: notificationService.getUnreadCount,
+  });
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   useEffect(() => {
     if (!notifOpen) return;
@@ -84,12 +97,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="dashboard-shell min-h-screen flex bg-gradient-to-br from-blue-50 via-background to-purple-50/40 dark:from-blue-950/20 dark:via-background dark:to-purple-950/20">
-      {/* Sidebar overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
       <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-[min(100%,18rem)] sm:w-64 bg-gradient-to-b from-blue-600 via-blue-600 to-indigo-600 text-white border-r border-white/15 transform transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 flex flex-col`}>
         <div className="p-4 border-b border-white/15 flex items-center justify-between gap-2">
           <Link to="/" className="flex items-center gap-2 min-w-0" onClick={() => setSidebarOpen(false)}>
@@ -126,9 +137,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Topbar */}
         <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur px-3 sm:px-4 py-2 sm:py-0 sm:h-16 flex flex-col justify-between gap-2 sm:flex-row sm:items-center sm:gap-4">
           <div className="relative flex-1 min-w-0 w-full order-2 sm:order-1 sm:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -140,8 +149,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Menu className="w-5 h-5" />
             </Button>
             <div className="ml-auto flex items-center gap-1 sm:gap-2 min-w-0">
+              <Badge variant="secondary" className="hidden sm:inline-flex capitalize text-xs shrink-0">
+                {role}
+              </Badge>
               <Button variant="ghost" size="icon" className="rounded-xl shrink-0" onClick={toggle}>
-                {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
 
               <div ref={notifRef} className="relative shrink-0 ml-1 sm:ml-2">
@@ -149,7 +161,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <Bell className="w-4 h-4" />
                   {unreadCount > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center">
-                      {unreadCount}
+                      {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
                 </Button>
@@ -159,12 +171,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     onClick={() => setNotifOpen(false)}
                   >
                     <div className="p-3 border-b border-border font-semibold text-sm">Notifications</div>
-                    {mockNotifications.map(n => (
-                      <div key={n.id} className={`p-3 border-b border-border last:border-0 text-sm ${!n.read ? 'bg-accent/50' : ''}`}>
-                        <div className="font-medium text-foreground break-words">{n.title}</div>
-                        <p className="text-muted-foreground text-xs mt-0.5 break-words">{n.message}</p>
-                      </div>
-                    ))}
+                    {notifications.length === 0 ? (
+                      <p className="p-4 text-sm text-muted-foreground text-center">No notifications</p>
+                    ) : (
+                      notifications.map(n => (
+                        <div key={n.id} className={`p-3 border-b border-border last:border-0 text-sm ${!n.read ? 'bg-accent/50' : ''}`}>
+                          <div className="font-medium text-foreground break-words">{n.title}</div>
+                          <p className="text-muted-foreground text-xs mt-0.5 break-words">{n.message}</p>
+                        </div>
+                      ))
+                    )}
                   </div>
                 )}
               </div>
@@ -173,7 +189,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <button
                   type="button"
                   className="flex items-center gap-2 rounded-xl px-1 py-0.5 hover:bg-accent transition-colors"
-                  onClick={() => setUserMenuOpen((prev) => !prev)}
+                  onClick={() => setUserMenuOpen(prev => !prev)}
                 >
                   <div className="w-8 h-8 shrink-0 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
                     {user?.name?.charAt(0) || 'U'}

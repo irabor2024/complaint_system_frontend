@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { MessageSquare } from 'lucide-react';
+import { toast } from 'sonner';
+
+const DEMO_PASSWORD = 'ChangeMe123!';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -17,16 +20,24 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const ok = await login(email, password);
+    const result = await login(email, password);
     setLoading(false);
-    if (ok) navigate('/dashboard');
+    if (result.ok) {
+      navigate('/dashboard');
+      return;
+    }
+    toast.error(result.message);
   };
 
   const quickLogin = async (role: string) => {
     setLoading(true);
-    await login(`${role}@hospital.com`, 'password');
+    const result = await login(`${role}@hospital.com`, DEMO_PASSWORD);
     setLoading(false);
-    navigate('/dashboard');
+    if (result.ok) {
+      navigate('/dashboard');
+      return;
+    }
+    toast.error(result.message);
   };
 
   return (
@@ -94,7 +105,7 @@ export default function LoginPage() {
                 <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-[11px] sm:text-xs">
-                <span className="bg-card px-2 text-muted-foreground">Quick Demo Login</span>
+                <span className="bg-card px-2 text-muted-foreground">Quick login (seeded API)</span>
               </div>
             </div>
 
@@ -113,6 +124,10 @@ export default function LoginPage() {
                 </Button>
               ))}
             </div>
+
+            <p className="text-center text-[11px] text-muted-foreground">
+              Demo accounts use password <span className="font-mono">{DEMO_PASSWORD}</span> after <code className="text-xs">npm run prisma:seed</code> on the API.
+            </p>
 
             <p className="text-center text-xs text-muted-foreground pt-1">
               <Link to="/" className="underline underline-offset-2 hover:text-foreground transition-colors">

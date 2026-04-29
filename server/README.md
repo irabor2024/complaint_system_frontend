@@ -101,6 +101,33 @@ Set `MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASS`, and `MAIL_FROM`. If SMTP
 
 Send `Authorization: Bearer <token>` for protected routes.
 
+## Error responses (for the frontend)
+
+Failed requests return **HTTP status** plus a JSON body in this shape:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Validation failed",
+    "status": 400,
+    "requestId": "uuid",
+    "fields": { "email": ["Invalid email"] },
+    "details": { "issues": [] }
+  }
+}
+```
+
+- **`error.code`** — Stable machine-readable identifier (e.g. `INVALID_TOKEN`, `DUPLICATE_ENTRY`, `ROUTE_NOT_FOUND`).
+- **`error.message`** — User-safe summary text.
+- **`error.status`** — Same as the HTTP status code.
+- **`error.requestId`** — Matches the **`X-Request-Id`** response header for log correlation.
+- **`error.fields`** — Present for validation / unique conflicts when applicable (map directly to form fields).
+- **`error.details`** — Optional structured context (in development, 500 errors may include a stack trace).
+
+Handled categories: **`AppError`** (domain), **Zod** validation, **Prisma** known & validation errors, **invalid JSON** body, and a generic **500** with a safe message in production.
+
 ## Production notes
 
 - Use `npm run build` then `npm start` behind a reverse proxy (TLS termination, timeouts).

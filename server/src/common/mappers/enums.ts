@@ -5,6 +5,7 @@ import type {
   Priority,
   Role,
 } from '@prisma/client';
+import { AppError } from '../errors/AppError';
 
 export function roleToApi(role: Role): 'patient' | 'staff' | 'admin' {
   const map: Record<Role, 'patient' | 'staff' | 'admin'> = {
@@ -24,7 +25,11 @@ export function roleFromApi(role: string): Role {
     admin: 'ADMIN',
   };
   const r = map[role.toLowerCase()];
-  if (!r) throw new Error(`Invalid role: ${role}`);
+  if (!r) {
+    throw new AppError(400, 'INVALID_ROLE', `Invalid role: ${role}`, {
+      details: { received: role, allowed: ['patient', 'staff', 'admin'] },
+    });
+  }
   return r;
 }
 
@@ -53,7 +58,11 @@ export function complaintStatusFromApi(s: string): ComplaintStatus {
     CLOSED: 'CLOSED',
   };
   const v = map[s];
-  if (!v) throw new Error(`Invalid status: ${s}`);
+  if (!v) {
+    throw new AppError(400, 'INVALID_COMPLAINT_STATUS', `Invalid complaint status: ${s}`, {
+      details: { received: s },
+    });
+  }
   return v;
 }
 
@@ -85,7 +94,11 @@ export function categoryFromApi(c: string): ComplaintCategory {
     OTHER: 'OTHER',
   };
   const v = map[c];
-  if (!v) throw new Error(`Invalid category: ${c}`);
+  if (!v) {
+    throw new AppError(400, 'INVALID_COMPLAINT_CATEGORY', `Invalid complaint category: ${c}`, {
+      details: { received: c },
+    });
+  }
   return v;
 }
 
@@ -111,7 +124,11 @@ export function priorityFromApi(p: string): Priority {
     CRITICAL: 'CRITICAL',
   };
   const v = map[p];
-  if (!v) throw new Error(`Invalid priority: ${p}`);
+  if (!v) {
+    throw new AppError(400, 'INVALID_PRIORITY', `Invalid priority: ${p}`, {
+      details: { received: p },
+    });
+  }
   return v;
 }
 

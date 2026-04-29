@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
-import { AnimatedPage } from '@/components/AnimatedPage';
+import AnimatedPage from '@/components/AnimatedPage';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -9,8 +9,9 @@ import {
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
 import { NotificationDropdown } from '@/components/NotificationDropdown';
-import { RoleSwitcher } from '@/components/RoleSwitcher';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { LayoutDashboard, FileText, MessageSquare, Bell, User, Activity, Moon, Sun } from 'lucide-react';
 
@@ -59,7 +60,8 @@ function StaffSidebar() {
 }
 
 export default function StaffLayout() {
-  const { isDark, toggleDark, userName } = useAuth();
+  const { user } = useAuth();
+  const { isDark, toggle } = useTheme();
   const location = useLocation();
 
   return (
@@ -70,12 +72,12 @@ export default function StaffLayout() {
           <header className="h-14 flex items-center justify-between border-b bg-card px-4">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
-              <span className="text-sm text-muted-foreground hidden sm:inline">Welcome, {userName}</span>
+              <span className="text-sm text-muted-foreground hidden sm:inline">Welcome, {user?.name ?? 'Staff'}</span>
             </div>
             <div className="flex items-center gap-2">
-              <RoleSwitcher />
+              <Badge variant="secondary" className="capitalize hidden sm:inline-flex">{user?.role ?? '—'}</Badge>
               <NotificationDropdown />
-              <Button variant="ghost" size="icon" onClick={toggleDark}>
+              <Button variant="ghost" size="icon" onClick={toggle}>
                 {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
             </div>

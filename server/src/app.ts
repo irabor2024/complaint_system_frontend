@@ -2,9 +2,13 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import pinoHttp from 'pino-http';
+import { randomUUID } from 'crypto';
 import { env } from './config/env';
 import { logger } from './config/logger';
+import { sendErrorResponse } from './common/errors/serializeError';
 import { errorHandler } from './middleware/errorHandler';
+import { exposeRequestIdMiddleware } from './middleware/exposeRequestId.middleware';
+import { requestContextMiddleware } from './middleware/requestContext.middleware';
 import { apiRouter } from './routes';
 
 export function createApp() {
@@ -16,13 +20,16 @@ export function createApp() {
     cors({
       origin: env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN.split(',').map(s => s.trim()),
       credentials: true,
+      exposedHeaders: ['X-Request-Id'],
     })
   );
-  app.use(express.json({ limit: '1mb' }));
+  app.use(requestContextMiddleware);
+  app.use(exposeRequestIdMiddleware);
   app.use(
     pinoHttp({
       logger,
       autoLogging: true,
+      genReqId: req => req.requestId ?? randomUUID(),
       customLogLevel(_req, res, err) {
         if (res.statusCode >= 500 || err) return 'error';
         if (res.statusCode >= 400) return 'warn';
@@ -30,6 +37,7 @@ export function createApp() {
       },
     })
   );
+  app.use(express.json({ limit: '1mb' }));
 
   app.get('/health', (_req, res) => {
     res.json({ ok: true, service: 'hospital-compliant-management-api' });
@@ -37,8 +45,8 @@ export function createApp() {
 
   app.use('/api', apiRouter);
 
-  app.use((_req, res) => {
-    res.status(404).json({ success: false, code: 'NOT_FOUND', message: 'Route not found' });
+  app.use((req, res) => {
+    sendErrorResponse(req, res, 404, 'ROUTE_NOT_FOUND', 'The requested resource does not exist.');
   });
 
   app.use(errorHandler);

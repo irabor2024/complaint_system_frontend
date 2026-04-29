@@ -5,8 +5,20 @@ export interface User {
   name: string;
   email: string;
   role: Role;
+  /** Staff: department record id from API */
+  departmentId?: string;
   department?: string;
+  jobTitle?: string;
   avatar?: string;
+}
+
+/** Department row from API (management + selects). */
+export interface DepartmentEntity {
+  id: string;
+  name: string;
+  head: string;
+  description: string;
+  staffCount: number;
 }
 
 export type ComplaintStatus = 'Submitted' | 'Under Review' | 'In Progress' | 'Resolved' | 'Closed';
@@ -21,7 +33,7 @@ export interface Complaint {
   email: string;
   phone: string;
   category: ComplaintCategory;
-  department: Department;
+  department: string;
   description: string;
   status: ComplaintStatus;
   priority: Priority;
@@ -68,7 +80,7 @@ export interface Notification {
 }
 
 export interface DepartmentStats {
-  department: Department;
+  department: string;
   totalComplaints: number;
   resolved: number;
   pending: number;
@@ -79,7 +91,7 @@ export interface ComplaintFormData {
   email: string;
   phone: string;
   category: ComplaintCategory;
-  department: Department;
+  departmentId: string;
   description: string;
   attachments?: FileList;
 }

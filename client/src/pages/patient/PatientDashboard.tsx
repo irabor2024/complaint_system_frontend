@@ -1,90 +1,94 @@
-import { useMemo } from 'react';
-import { complaints } from '@/mock-data/complaints';
-import { Card, CardContent } from '@/components/ui/card';
-import { FileText, Clock, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { FileText, PlusCircle, Eye } from 'lucide-react';
 import AnimatedPage from '@/components/AnimatedPage';
-import { StatCardSkeleton, ComplaintListSkeleton } from '@/components/skeletons/DashboardSkeleton';
-import { useSimulatedLoading } from '@/hooks/useSimulatedLoading';
-
-const statusColors: Record<string, string> = {
-  Submitted: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
-  'In Progress': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
-  'Under Review': 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
-  Resolved: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-  Closed: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-};
+import { complaintService } from '@/services/api';
+import { complaintStatusBadgeClass } from '@/lib/complaintUi';
 
 export default function PatientDashboard() {
-  const loading = useSimulatedLoading(900);
-  const myComplaints = useMemo(() => complaints.slice(0, 12), []);
-  const total = myComplaints.length;
-  const active = myComplaints.filter(c => !['Resolved', 'Closed'].includes(c.status)).length;
-  const resolved = myComplaints.filter(c => c.status === 'Resolved' || c.status === 'Closed').length;
+  const { data: complaints = [], isPending } = useQuery({
+    queryKey: ['complaints'],
+    queryFn: complaintService.getAll,
+  });
 
-  const stats = [
-    { label: 'Total Complaints', value: total, icon: FileText, color: 'text-primary' },
-    { label: 'Active', value: active, icon: Clock, color: 'text-yellow-500' },
-    { label: 'Resolved', value: resolved, icon: CheckCircle, color: 'text-green-500' },
-  ];
+  const recent = complaints.slice(0, 5);
 
   return (
     <AnimatedPage>
       <div className="space-y-6">
-        <div className="min-w-0">
+        <div>
           <h1 className="text-xl sm:text-2xl font-bold text-foreground">Patient Dashboard</h1>
-          <p className="text-muted-foreground mt-1 text-sm sm:text-base">Overview of your complaints</p>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">Welcome back — here is a snapshot of your complaints.</p>
         </div>
 
-        {loading ? (
-          <>
-            <StatCardSkeleton count={3} />
-            <ComplaintListSkeleton />
-          </>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-              {stats.map(s => (
-                <Card key={s.label} className="rounded-2xl">
-                  <CardContent className="p-5 flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-xl bg-muted flex items-center justify-center ${s.color}`}>
-                      <s.icon className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-foreground">{s.value}</p>
-                      <p className="text-sm text-muted-foreground">{s.label}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <Card className="rounded-2xl">
-              <CardContent className="p-0">
-                <div className="p-3 sm:p-4 border-b border-border flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="font-semibold text-foreground text-sm sm:text-base">Recent Complaints</h2>
-                  <Link to="/dashboard/submit" className="text-sm text-primary hover:underline shrink-0 self-start sm:self-auto">+ New Complaint</Link>
-                </div>
-                <div className="divide-y divide-border">
-                  {myComplaints.slice(0, 5).map(c => (
-                    <div key={c.id} className="p-3 sm:p-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between hover:bg-muted/50 transition-colors">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium text-foreground text-sm">{c.ticketId}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full shrink-0 ${statusColors[c.status]}`}>{c.status}</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground line-clamp-2 sm:truncate mt-0.5">{c.description}</p>
-                      </div>
-                      <div className="text-xs text-muted-foreground sm:ml-4 sm:text-right sm:whitespace-nowrap shrink-0">
-                        {new Date(c.createdAt).toLocaleDateString()}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <Link to="/dashboard/submit">
+            <Card className="rounded-2xl hover:border-primary/50 transition-colors h-full">
+              <CardContent className="p-5 flex flex-col items-center text-center gap-2">
+                <PlusCircle className="w-8 h-8 text-primary" />
+                <p className="font-semibold text-foreground">Submit Complaint</p>
+                <p className="text-xs text-muted-foreground">Tell us about an issue</p>
               </CardContent>
             </Card>
-          </>
-        )}
+          </Link>
+          <Link to="/dashboard/track">
+            <Card className="rounded-2xl hover:border-primary/50 transition-colors h-full">
+              <CardContent className="p-5 flex flex-col items-center text-center gap-2">
+                <Eye className="w-8 h-8 text-primary" />
+                <p className="font-semibold text-foreground">Track Complaint</p>
+                <p className="text-xs text-muted-foreground">Use your ticket ID</p>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link to="/dashboard/complaints">
+            <Card className="rounded-2xl hover:border-primary/50 transition-colors h-full">
+              <CardContent className="p-5 flex flex-col items-center text-center gap-2">
+                <FileText className="w-8 h-8 text-primary" />
+                <p className="font-semibold text-foreground">My Complaints</p>
+                <p className="text-xs text-muted-foreground">{complaints.length} total</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+
+        <Card className="rounded-2xl">
+          <CardContent className="p-0">
+            <div className="p-4 border-b border-border flex items-center justify-between gap-2">
+              <h2 className="font-semibold text-foreground">Recent complaints</h2>
+              <Button variant="outline" size="sm" className="rounded-xl" asChild>
+                <Link to="/dashboard/complaints">View all</Link>
+              </Button>
+            </div>
+            {isPending ? (
+              <p className="p-6 text-sm text-muted-foreground text-center">Loading…</p>
+            ) : recent.length === 0 ? (
+              <p className="p-6 text-sm text-muted-foreground text-center">No complaints yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/50">
+                      <th className="text-left p-3 font-medium text-muted-foreground">Ticket</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Status</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recent.map(c => (
+                      <tr key={c.id} className="border-b border-border">
+                        <td className="p-3 font-medium">{c.ticketId}</td>
+                        <td className="p-3"><span className={`text-xs px-2 py-0.5 rounded-full ${complaintStatusBadgeClass(c.status)}`}>{c.status}</span></td>
+                        <td className="p-3 text-muted-foreground">{new Date(c.createdAt).toLocaleDateString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </AnimatedPage>
   );

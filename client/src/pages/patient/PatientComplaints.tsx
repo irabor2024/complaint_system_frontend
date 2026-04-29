@@ -1,20 +1,16 @@
-import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import AnimatedPage from '@/components/AnimatedPage';
-import { complaints } from '@/mock-data/complaints';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-
-const statusColors: Record<string, string> = {
-  Submitted: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
-  'In Progress': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
-  'Under Review': 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
-  Resolved: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-  Closed: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-};
+import { complaintService } from '@/services/api';
+import { complaintStatusBadgeClass } from '@/lib/complaintUi';
 
 export default function PatientComplaints() {
-  const myComplaints = useMemo(() => complaints.slice(0, 20), []);
+  const { data: complaints = [], isPending } = useQuery({
+    queryKey: ['complaints'],
+    queryFn: complaintService.getAll,
+  });
 
   return (
     <AnimatedPage>
@@ -33,6 +29,9 @@ export default function PatientComplaints() {
 
         <Card className="rounded-2xl">
           <CardContent className="p-0">
+            {isPending ? (
+              <p className="p-6 text-sm text-muted-foreground text-center">Loading…</p>
+            ) : (
             <div className="overflow-x-auto -mx-1 px-1 sm:mx-0 sm:px-0">
               <table className="w-full text-sm min-w-[40rem]">
                 <thead>
@@ -45,22 +44,19 @@ export default function PatientComplaints() {
                   </tr>
                 </thead>
                 <tbody>
-                  {myComplaints.map((c) => (
+                  {complaints.map(c => (
                     <tr key={c.id} className="border-b border-border hover:bg-muted/30 transition-colors">
                       <td className="p-3 font-medium text-primary">{c.ticketId}</td>
-                      <td className="p-3 text-foreground">{c.category}</td>
+                      <td className="p-3 text-muted-foreground">{c.category}</td>
                       <td className="p-3 text-muted-foreground hidden md:table-cell">{c.department}</td>
-                      <td className="p-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[c.status] ?? 'bg-muted text-muted-foreground'}`}>
-                          {c.status}
-                        </span>
-                      </td>
+                      <td className="p-3"><span className={`text-xs px-2 py-0.5 rounded-full ${complaintStatusBadgeClass(c.status)}`}>{c.status}</span></td>
                       <td className="p-3 text-muted-foreground">{new Date(c.createdAt).toLocaleDateString()}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -8,8 +8,8 @@ import {
 } from '@/components/ui/sidebar';
 import { NavLink } from '@/components/NavLink';
 import { NotificationDropdown } from '@/components/NotificationDropdown';
-import { RoleSwitcher } from '@/components/RoleSwitcher';
 import { useAuth } from '@/context/AuthContext';
+import { Badge } from '@/components/ui/badge';
 import { useTheme } from '@/context/ThemeContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -79,7 +79,7 @@ export default function AdminLayout() {
               <span className="text-sm text-muted-foreground hidden sm:inline">Welcome, {user?.name ?? 'Admin'}</span>
             </div>
             <div className="flex items-center gap-2">
-              <RoleSwitcher />
+              <Badge variant="secondary" className="capitalize hidden sm:inline-flex">{user?.role ?? '—'}</Badge>
               <NotificationDropdown />
               <Button variant="ghost" size="icon" onClick={toggle}>
                 {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

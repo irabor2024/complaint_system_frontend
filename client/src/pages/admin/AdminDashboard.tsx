@@ -1,16 +1,26 @@
-import { complaints } from '@/mock-data/complaints';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { FileText, Clock, CheckCircle, Timer } from 'lucide-react';
 import AnimatedPage from '@/components/AnimatedPage';
 import { StatCardSkeleton, TableSkeleton } from '@/components/skeletons/DashboardSkeleton';
-import { useSimulatedLoading } from '@/hooks/useSimulatedLoading';
+import { complaintService } from '@/services/api';
 
 export default function AdminDashboard() {
-  const loading = useSimulatedLoading(900);
-  const total = complaints.length;
-  const open = complaints.filter(c => c.status === 'submitted' || c.status === 'in-progress').length;
-  const underReview = complaints.filter(c => c.status === 'under-review').length;
-  const closed = complaints.filter(c => c.status === 'resolved' || c.status === 'closed').length;
+  const { data: complaints = [], isPending } = useQuery({
+    queryKey: ['complaints'],
+    queryFn: complaintService.getAll,
+  });
+
+  const { total, open, underReview, closed } = useMemo(() => {
+    const total = complaints.length;
+    const open = complaints.filter(
+      c => c.status === 'Submitted' || c.status === 'In Progress'
+    ).length;
+    const underReview = complaints.filter(c => c.status === 'Under Review').length;
+    const closed = complaints.filter(c => c.status === 'Resolved' || c.status === 'Closed').length;
+    return { total, open, underReview, closed };
+  }, [complaints]);
 
   const stats = [
     { label: 'Total Complaints', value: total, icon: FileText, color: 'text-primary' },
@@ -27,7 +37,7 @@ export default function AdminDashboard() {
           <p className="text-muted-foreground mt-1 text-sm sm:text-base">System overview and management</p>
         </div>
 
-        {loading ? (
+        {isPending ? (
           <>
             <StatCardSkeleton count={4} />
             <TableSkeleton rows={8} cols={5} />

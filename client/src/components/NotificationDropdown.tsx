@@ -12,7 +12,10 @@ export function NotificationDropdown() {
 
   const markRead = useMutation({
     mutationFn: notificationService.markAsRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications-unread'] });
+    },
   });
 
   return (

@@ -100,6 +100,22 @@ export default function TrackComplaint() {
               <p className="text-sm text-foreground">{result.description}</p>
             </div>
 
+            {(result.attachments ?? []).length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-foreground mb-2">Attachments</p>
+                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                  {(result.attachments ?? []).map(a => (
+                    <li key={a.id}>
+                      {a.fileName} ({(a.sizeBytes / 1024).toFixed(1)} KB)
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Sign in and open this complaint from your dashboard to download files.
+                </p>
+              </div>
+            )}
+
             <div>
               <p className="text-sm font-medium text-foreground mb-3">Activity</p>
               <div className="space-y-4">

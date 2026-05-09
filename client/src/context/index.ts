@@ -61,7 +61,7 @@ export interface Complaint {
   priority: Priority;
   status: ComplaintStatus;
   description: string;
-  attachments?: string[];
+  attachments?: { id: string; fileName: string; mimeType: string; sizeBytes: number }[];
   assignedStaffId?: string;
   assignedStaffName?: string;
   createdAt: string;

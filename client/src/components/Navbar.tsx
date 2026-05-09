@@ -28,10 +28,10 @@ export function Navbar() {
         <div className="hidden md:flex items-center gap-4">
           {isLanding && (
             <div className="flex items-center gap-2">
-              <Link to={isAuthenticated ? '/dashboard/submit' : '/login'}>
+              <Link to="/submit">
                 <Button size="sm">Submit Complaint</Button>
               </Link>
-              <Link to={isAuthenticated ? '/dashboard/track' : '/login'}>
+              <Link to="/track">
                 <Button variant="outline" size="sm">Track Complaint</Button>
               </Link>
             </div>
@@ -69,10 +69,10 @@ export function Navbar() {
             </div>
           )}
           <div className="flex flex-col gap-2">
-            <Link to={isAuthenticated ? '/dashboard/submit' : '/login'} onClick={() => setMobileOpen(false)}>
+            <Link to="/submit" onClick={() => setMobileOpen(false)}>
               <Button className="w-full" size="sm">Submit Complaint</Button>
             </Link>
-            <Link to={isAuthenticated ? '/dashboard/track' : '/login'} onClick={() => setMobileOpen(false)}>
+            <Link to="/track" onClick={() => setMobileOpen(false)}>
               <Button variant="outline" className="w-full" size="sm">Track Complaint</Button>
             </Link>
             {isAuthenticated && (

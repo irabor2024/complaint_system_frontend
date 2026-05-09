@@ -4,6 +4,8 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  /** From account profile when present */
+  phone?: string;
   role: Role;
   /** Staff: department record id from API */
   departmentId?: string;
@@ -26,6 +28,13 @@ export type ComplaintCategory = 'Hygiene' | 'Billing' | 'Staff Behavior' | 'Serv
 export type Department = 'Emergency' | 'Billing' | 'Pharmacy' | 'Laboratory' | 'Ward' | 'Administration';
 export type Priority = 'Low' | 'Medium' | 'High' | 'Critical';
 
+export interface ComplaintAttachment {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+
 export interface Complaint {
   id: string;
   ticketId: string;
@@ -42,7 +51,7 @@ export interface Complaint {
   createdAt: string;
   updatedAt: string;
   responses: ComplaintResponse[];
-  attachments?: string[];
+  attachments: ComplaintAttachment[];
 }
 
 export interface ComplaintResponse {
@@ -90,8 +99,12 @@ export interface ComplaintFormData {
   patientName: string;
   email: string;
   phone: string;
-  category: ComplaintCategory;
-  departmentId: string;
+  /** Required when automaticCategory is false */
+  category?: ComplaintCategory;
+  /** AI assigns category, priority, and department from description (local NLP + optional HF for category) */
+  automaticCategory?: boolean;
+  /** Required when automaticCategory is false */
+  departmentId?: string;
   description: string;
-  attachments?: FileList;
+  files?: File[];
 }

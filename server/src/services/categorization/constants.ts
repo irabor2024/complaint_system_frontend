@@ -1,0 +1,125 @@
+/** API-facing complaint categories (must match submit schema / Prisma enum mapping). */
+export const COMPLAINT_CATEGORIES = [
+  'Hygiene',
+  'Billing',
+  'Staff Behavior',
+  'Service Delay',
+  'Equipment',
+  'Other',
+] as const;
+
+export type ComplaintCategoryLabel = (typeof COMPLAINT_CATEGORIES)[number];
+
+/** Seed phrases per category for TF-IDF matching (local NLP). */
+export const CATEGORY_SEEDS: Record<ComplaintCategoryLabel, string[]> = {
+  Hygiene: [
+    'dirty restroom bathroom toilet unsanitary cleanliness sanitation mop germs infection sterile disinfect washroom smell odor sewage trash garbage linens sheets blood stain',
+    'poor hygiene hand washing gloves mask protective equipment contamination food safety kitchen ward',
+    'infection control isolation room not cleaned daily housekeeping',
+  ],
+  Billing: [
+    'bill invoice charge overcharge insurance copay payment receipt statement balance debt collection refund incorrect amount coding',
+    'medical bill surprise cost price fee financial account statement',
+    'insurance claim denied pre-authorization prior authorization EOB',
+  ],
+  'Staff Behavior': [
+    'rude dismissive unprofessional attitude yelling disrespect doctor nurse staff behavior complaint about employee',
+    'refused to listen ignored patient no empathy harsh tone language',
+    'discrimination harassment inappropriate comment',
+  ],
+  'Service Delay': [
+    'long wait waiting room hours late appointment schedule behind delay slow triage',
+    'ER emergency room wait time never seen on time',
+    'surgery postponed rescheduled multiple times no callback',
+  ],
+  Equipment: [
+    'broken machine scanner MRI CT xray ultrasound monitor ventilator bed wheelchair stretcher',
+    'equipment failure device error maintenance out of order not working',
+    'IV pump alarm supplies shortage',
+  ],
+  Other: [
+    'parking visitor food cafeteria noise temperature parking lot signage directions',
+    'general concern not listed miscellaneous other issue',
+  ],
+};
+
+/** Keyword hints per category (substring / token boost). */
+export const CATEGORY_KEYWORDS: Record<ComplaintCategoryLabel, string[]> = {
+  Hygiene: [
+    'hygiene',
+    'clean',
+    'dirty',
+    'bathroom',
+    'restroom',
+    'toilet',
+    'sanitize',
+    'infection',
+    'housekeeping',
+    'linen',
+    'odor',
+    'smell',
+    'mold',
+    'blood',
+    'trash',
+    'garbage',
+  ],
+  Billing: [
+    'bill',
+    'billing',
+    'invoice',
+    'charge',
+    'charged',
+    'insurance',
+    'copay',
+    'payment',
+    'refund',
+    'cost',
+    'price',
+    'claim',
+    'eob',
+    'coding',
+  ],
+  'Staff Behavior': [
+    'rude',
+    'staff',
+    'nurse',
+    'doctor',
+    'physician',
+    'attitude',
+    'yelled',
+    'ignored',
+    'dismissive',
+    'unprofessional',
+    'harassment',
+    'discriminat',
+  ],
+  'Service Delay': [
+    'wait',
+    'waiting',
+    'delay',
+    'late',
+    'hours',
+    'queue',
+    'never',
+    'seen',
+    'appointment',
+    'triage',
+    'schedule',
+  ],
+  Equipment: [
+    'equipment',
+    'machine',
+    'broken',
+    'mri',
+    'ct',
+    'xray',
+    'x-ray',
+    'scanner',
+    'monitor',
+    'ventilator',
+    'wheelchair',
+    'bed',
+    'device',
+  ],
+  Other: [],
+};

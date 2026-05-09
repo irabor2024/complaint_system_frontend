@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { complaintController } from '../../controllers/complaint.controller';
+import { complaintUploadWhenMultipart } from '../../middleware/complaintUpload.middleware';
 import { requireAuth } from '../../middleware/auth.middleware';
 import { requireRole } from '../../middleware/requireRole.middleware';
-import { validateBody } from '../../middleware/validate.middleware';
+import { validateBody, validateSubmitComplaintBody } from '../../middleware/validate.middleware';
 import {
   addComplaintResponseSchema,
   assignComplaintSchema,
   setPrioritySchema,
-  submitComplaintSchema,
   updateComplaintStatusSchema,
 } from '../../validation/complaint.schema';
 
@@ -21,17 +21,13 @@ const submitLimiter = rateLimit({
 
 export const complaintRouter = Router();
 
-complaintRouter.post(
-  '/',
-  submitLimiter,
-  validateBody(submitComplaintSchema),
-  complaintController.submitPublic
-);
+complaintRouter.post('/', submitLimiter, complaintUploadWhenMultipart, validateSubmitComplaintBody, complaintController.submitPublic);
 
 complaintRouter.get('/track/:ticketId', complaintController.track);
 
 complaintRouter.use(requireAuth);
 
+complaintRouter.get('/:id/attachments/:attachmentId/download', complaintController.downloadAttachment);
 complaintRouter.get('/', complaintController.list);
 complaintRouter.get('/:id', complaintController.getById);
 

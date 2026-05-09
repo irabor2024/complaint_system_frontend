@@ -130,6 +130,12 @@ export default function LoginPage() {
             </p>
 
             <p className="text-center text-xs text-muted-foreground pt-1">
+              <Link to="/submit" className="underline underline-offset-2 hover:text-foreground transition-colors">
+                File a complaint without signing in
+              </Link>
+              <span className="mx-2 text-border" aria-hidden>
+                ·
+              </span>
               <Link to="/" className="underline underline-offset-2 hover:text-foreground transition-colors">
                 Back to home
               </Link>

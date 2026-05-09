@@ -67,6 +67,7 @@ async function main() {
       email: 'admin@hospital.com',
       passwordHash,
       name: 'Admin User',
+      phone: '+1-555-0100',
       role: 'ADMIN',
     },
   });
@@ -76,6 +77,7 @@ async function main() {
       email: 'staff@hospital.com',
       passwordHash,
       name: 'Dr. Sarah Chen',
+      phone: '+1-555-0101',
       role: 'STAFF',
       departmentId: 'dept-1',
       jobTitle: 'Physician',
@@ -87,6 +89,7 @@ async function main() {
       email: 'patient@hospital.com',
       passwordHash,
       name: 'John Patient',
+      phone: '+1-555-0102',
       role: 'PATIENT',
     },
   });

@@ -2,7 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Circle, ArrowLeft } from 'lucide-react';
+import { Circle, ArrowLeft, Paperclip } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import AnimatedPage from '@/components/AnimatedPage';
@@ -122,6 +122,38 @@ export default function ComplaintDetail() {
             <p className="text-sm font-medium text-foreground mb-2">Description</p>
             <p className="text-sm text-muted-foreground">{complaint.description}</p>
           </div>
+
+          {(complaint.attachments ?? []).length > 0 && (
+            <div className="border-t border-border pt-4">
+              <p className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
+                <Paperclip className="h-4 w-4 shrink-0" />
+                Attachments
+              </p>
+              <ul className="space-y-2">
+                {(complaint.attachments ?? []).map(a => (
+                  <li key={a.id} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-border px-3 py-2 text-sm">
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground truncate">{a.fileName}</p>
+                      <p className="text-xs text-muted-foreground">{(a.sizeBytes / 1024).toFixed(1)} KB · {a.mimeType}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl shrink-0 w-full sm:w-auto"
+                      onClick={() =>
+                        void complaintService.downloadAttachment(complaint.id, a.id, a.fileName).catch((e: unknown) => {
+                          toast.error(e instanceof ApiRequestError ? e.message : 'Download failed');
+                        })
+                      }
+                    >
+                      Download
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="border-t border-border pt-4">
             <p className="text-sm font-medium text-foreground mb-3">Activity</p>

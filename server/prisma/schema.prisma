@@ -49,6 +49,7 @@ model User {
   email        String   @unique
   passwordHash String
   name         String
+  phone        String?
   role         Role
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id])
@@ -93,6 +94,20 @@ model Complaint {
 
   responses     ComplaintResponse[]
   notifications Notification[]
+  attachments   ComplaintAttachment[]
+}
+
+model ComplaintAttachment {
+  id             String    @id @default(cuid())
+  complaintId    String
+  complaint      Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  originalName   String
+  storedFileName String
+  mimeType       String
+  sizeBytes      Int
+  createdAt      DateTime  @default(now())
+
+  @@index([complaintId])
 }
 
 model ComplaintResponse {

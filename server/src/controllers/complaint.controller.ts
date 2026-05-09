@@ -6,7 +6,10 @@ import { listComplaintsQuerySchema } from '../validation/complaint.schema';
 
 export const complaintController = {
   submitPublic: asyncHandler(async (req: Request, res: Response) => {
-    const data = await complaintService.submitPublic(req.body);
+    const files = Array.isArray(req.files)
+      ? (req.files as { buffer: Buffer; originalname: string; mimetype: string; size: number }[])
+      : [];
+    const data = await complaintService.submitPublic({ ...req.body, files });
     res.status(201).json({ success: true, data });
   }),
 
@@ -24,6 +27,21 @@ export const complaintController = {
   getById: asyncHandler(async (req: Request, res: Response) => {
     const data = await complaintService.getById(req.auth!, routeParam(req, 'id'));
     res.json({ success: true, data });
+  }),
+
+  downloadAttachment: asyncHandler(async (req: Request, res: Response) => {
+    const { stream, downloadName, mimeType } = await complaintService.getAttachmentFile(
+      req.auth!,
+      routeParam(req, 'id'),
+      routeParam(req, 'attachmentId')
+    );
+    res.setHeader('Content-Type', mimeType);
+    const encoded = encodeURIComponent(downloadName);
+    res.setHeader('Content-Disposition', `attachment; filename="${encoded}"; filename*=UTF-8''${encoded}`);
+    stream.on('error', () => {
+      if (!res.headersSent) res.status(500).end();
+    });
+    stream.pipe(res);
   }),
 
   updateStatus: asyncHandler(async (req: Request, res: Response) => {

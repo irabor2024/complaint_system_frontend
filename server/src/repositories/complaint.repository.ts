@@ -8,7 +8,8 @@ const complaintInclude = {
     include: { author: { select: { id: true, name: true, role: true } } },
     orderBy: { createdAt: 'asc' as const },
   },
-} satisfies Prisma.ComplaintInclude;
+  attachments: { orderBy: { createdAt: 'asc' as const } },
+} as const;
 
 export type ComplaintWithRelations = Prisma.ComplaintGetPayload<{ include: typeof complaintInclude }>;
 
@@ -60,6 +61,10 @@ export class ComplaintRepository {
     data: Prisma.ComplaintUpdateInput
   ): Promise<ComplaintWithRelations> {
     return prisma.complaint.update({ where: { id }, data, include: complaintInclude });
+  }
+
+  async deleteById(id: string): Promise<void> {
+    await prisma.complaint.delete({ where: { id } });
   }
 
   async countForStaff(staffId: string): Promise<{ assigned: number; resolved: number }> {

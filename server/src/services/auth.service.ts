@@ -26,23 +26,34 @@ export class AuthService {
     } as SignOptions);
   }
 
-  async register(input: { email: string; password: string; name: string }): Promise<{ token: string; user: unknown }> {
+  async register(input: { email: string; password: string; name: string; phone?: string }): Promise<{
+    token: string;
+    user: unknown;
+  }> {
     const email = input.email.toLowerCase();
     const existing = await userRepository.findByEmail(email);
     if (existing) {
       throw new AppError(409, 'EMAIL_IN_USE', 'Email is already registered');
     }
     const passwordHash = await bcrypt.hash(input.password, 12);
+    const phone = input.phone?.trim();
     const user = await userRepository.create({
       email,
       passwordHash,
       name: input.name,
+      ...(phone ? { phone } : {}),
       role: 'PATIENT',
     });
     const token = this.signToken(user);
     return {
       token,
-      user: { id: user.id, email: user.email, name: user.name, role: roleToApi(user.role) },
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: roleToApi(user.role),
+        ...(user.phone ? { phone: user.phone } : {}),
+      },
     };
   }
 
@@ -64,6 +75,7 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: roleToApi(user.role),
+        ...(user.phone ? { phone: user.phone } : {}),
         ...(user.departmentId ? { departmentId: user.departmentId } : {}),
         ...(user.jobTitle ? { jobTitle: user.jobTitle } : {}),
       },
@@ -87,6 +99,7 @@ export class AuthService {
       email: user.email,
       name: user.name,
       role: roleToApi(user.role),
+      ...(user.phone ? { phone: user.phone } : {}),
       departmentId: user.departmentId,
       jobTitle: user.jobTitle,
     };

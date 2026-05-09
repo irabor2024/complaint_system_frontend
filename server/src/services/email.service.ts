@@ -1,12 +1,37 @@
 import { sendMailSafe } from '../config/mailer';
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 export class EmailService {
-  async sendComplaintSubmitted(to: string, ticketId: string, patientName: string): Promise<void> {
+  async sendComplaintSubmitted(to: string, ticketId: string, departmentName: string): Promise<void> {
+    const deptLabel = escapeHtml(departmentName);
+    const assignmentLine = `Your complaint has been received and assigned to the ${departmentName} Department.`;
+    const assignmentLineHtml = `Your complaint has been received and assigned to the ${deptLabel} Department.`;
+
+    const text = [
+      'Dear Patient,',
+      '',
+      assignmentLine,
+      `Ticket ID: ${ticketId}`,
+      '',
+      'We will resolve this within 24 hours.',
+      '',
+      'Thank you.',
+    ].join('\n');
+
+    const html = `<p>Dear Patient,</p>
+<p>${assignmentLineHtml}<br/>
+Ticket ID: <strong>${escapeHtml(ticketId)}</strong></p>
+<p>We will resolve this within 24 hours.</p>
+<p>Thank you.</p>`;
+
     await sendMailSafe({
       to,
       subject: `Complaint received — ${ticketId}`,
-      text: `Hello ${patientName},\n\nWe received your complaint (${ticketId}). Our team will review it shortly.\n`,
-      html: `<p>Hello ${patientName},</p><p>We received your complaint (<strong>${ticketId}</strong>). Our team will review it shortly.</p>`,
+      text,
+      html,
     });
   }
 

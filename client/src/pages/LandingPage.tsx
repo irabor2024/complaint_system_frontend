@@ -71,6 +71,9 @@ export default function LandingPage() {
             </Link>
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 md:hidden">
               <ThemeToggle className="rounded-xl h-9 w-9 shrink-0" />
+              <Link to="/submit">
+                <Button variant="outline" size="sm" className="rounded-xl">Submit</Button>
+              </Link>
               <Link to="/login">
                 <Button variant="ghost" size="sm" className="rounded-xl">Sign in</Button>
               </Link>
@@ -89,6 +92,12 @@ export default function LandingPage() {
           </nav>
           <div className="hidden md:flex items-center gap-2 shrink-0">
             <ThemeToggle className="rounded-xl" />
+            <Link to="/track">
+              <Button variant="ghost" className="rounded-xl">Track complaint</Button>
+            </Link>
+            <Link to="/submit">
+              <Button variant="outline" className="rounded-xl">Submit complaint</Button>
+            </Link>
             <Link to="/login">
               <Button variant="ghost" className="rounded-xl">Sign in</Button>
             </Link>
@@ -139,9 +148,9 @@ export default function LandingPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.55 }}
               >
-                <Link to="/login" className="w-full sm:w-auto">
+                <Link to="/submit" className="w-full sm:w-auto">
                   <Button size="lg" className="rounded-xl px-8 gap-2 w-full sm:w-auto">
-                    Get Started <ArrowRight className="w-4 h-4" />
+                    Submit a complaint <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
                 <a href="#how-it-works" className="w-full sm:w-auto text-center sm:text-left">

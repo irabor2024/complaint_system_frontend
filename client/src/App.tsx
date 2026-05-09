@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import PublicLayout from "@/layouts/PublicLayout";
+import PublicComplaintLayout from "@/layouts/PublicComplaintLayout";
 
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
@@ -100,6 +101,10 @@ const App = () => (
               <Route path="/dashboard/*" element={<DashboardRoutes />} />
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<LandingPage />} />
+                <Route element={<PublicComplaintLayout />}>
+                  <Route path="/submit" element={<SubmitComplaint />} />
+                  <Route path="/track" element={<TrackComplaint />} />
+                </Route>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="*" element={<NotFound />} />
               </Route>

@@ -17,6 +17,7 @@ function mapUser(dto: AuthUserDto): User {
     email: dto.email,
     name: dto.name,
     role: dto.role,
+    ...(dto.phone ? { phone: dto.phone } : {}),
     ...(dto.departmentId ? { departmentId: dto.departmentId } : {}),
     ...(dto.jobTitle ? { jobTitle: dto.jobTitle } : {}),
   };

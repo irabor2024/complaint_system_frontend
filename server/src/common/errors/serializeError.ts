@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
+import multer from 'multer';
 import { ZodError } from 'zod';
 import { env } from '../../config/env';
 import { logger } from '../../config/logger';
@@ -134,6 +135,22 @@ export function handleErrorForResponse(err: unknown, req: Request, res: Response
       fields,
       details: { issues: err.issues },
     });
+    return;
+  }
+
+  if (err instanceof multer.MulterError) {
+    const message =
+      err.code === 'LIMIT_FILE_SIZE'
+        ? `Each file must be at most ${env.UPLOAD_MAX_FILE_MB} MB`
+        : err.code === 'LIMIT_FILE_COUNT'
+          ? 'Too many files attached'
+          : err.message;
+    sendErrorResponse(req, res, 400, 'UPLOAD_ERROR', message);
+    return;
+  }
+
+  if (err instanceof Error && err.message.startsWith('Unsupported file type')) {
+    sendErrorResponse(req, res, 400, 'INVALID_FILE_TYPE', err.message);
     return;
   }
 

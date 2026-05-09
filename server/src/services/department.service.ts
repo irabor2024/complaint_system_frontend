@@ -5,7 +5,9 @@ import { cacheService, CacheKeys } from './cache.service';
 export class DepartmentService {
   async list() {
     const cached = await cacheService.get<unknown[]>(CacheKeys.departmentsAll);
-    if (cached) return cached;
+    // Do not treat a cached empty array as a hit — [] is truthy in JS and would skip the DB
+    // after departments were added (e.g. seed run shortly after first request).
+    if (Array.isArray(cached) && cached.length > 0) return cached;
 
     const rows = await departmentRepository.findAll();
     const dto = rows.map(d => ({
@@ -15,7 +17,9 @@ export class DepartmentService {
       description: d.description ?? '',
       staffCount: d.staffCount,
     }));
-    await cacheService.set(CacheKeys.departmentsAll, dto);
+    if (dto.length > 0) {
+      await cacheService.set(CacheKeys.departmentsAll, dto);
+    }
     return dto;
   }
 

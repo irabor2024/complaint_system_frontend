@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { z } from 'zod';
 import { asyncHandler } from './asyncHandler';
+import { submitComplaintSchema } from '../validation/complaint.schema';
 
 type Schema = z.ZodTypeAny;
 
@@ -17,3 +18,8 @@ export function validateQuery(schema: Schema) {
     next();
   });
 }
+
+export const validateSubmitComplaintBody = asyncHandler(async (req: Request, _res: Response, next: NextFunction) => {
+  req.body = await submitComplaintSchema.parseAsync(req.body);
+  next();
+});

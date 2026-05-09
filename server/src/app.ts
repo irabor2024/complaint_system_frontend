@@ -1,9 +1,10 @@
+import fs from 'node:fs';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import { randomUUID } from 'crypto';
-import { env } from './config/env';
+import { getCorsOriginOption, getUploadRoot } from './config/env';
 import { logger } from './config/logger';
 import { sendErrorResponse } from './common/errors/serializeError';
 import { errorHandler } from './middleware/errorHandler';
@@ -14,11 +15,13 @@ import { apiRouter } from './routes';
 export function createApp() {
   const app = express();
 
+  fs.mkdirSync(getUploadRoot(), { recursive: true });
+
   app.disable('x-powered-by');
   app.use(helmet());
   app.use(
     cors({
-      origin: env.CORS_ORIGIN === '*' ? true : env.CORS_ORIGIN.split(',').map(s => s.trim()),
+      origin: getCorsOriginOption(),
       credentials: true,
       exposedHeaders: ['X-Request-Id'],
     })

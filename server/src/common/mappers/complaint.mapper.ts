@@ -32,6 +32,14 @@ export function mapComplaintToDto(c: ComplaintWithRelations) {
       createdAt: r.createdAt.toISOString(),
       ...(r.statusChange ? { statusChange: complaintStatusToApi(r.statusChange) } : {}),
     })),
-    attachments: [] as string[],
+    attachments: (
+      (c as typeof c & { attachments?: { id: string; originalName: string; mimeType: string; sizeBytes: number }[] })
+        .attachments ?? []
+    ).map(a => ({
+      id: a.id,
+      fileName: a.originalName,
+      mimeType: a.mimeType,
+      sizeBytes: a.sizeBytes,
+    })),
   };
 }

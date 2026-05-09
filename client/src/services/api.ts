@@ -1,4 +1,4 @@
-import { apiFetch, apiFetchOptional } from '@/lib/apiClient';
+import { apiFetch, apiFetchOptional, API_BASE, getToken, ApiRequestError } from '@/lib/apiClient';
 import type {
   Complaint,
   ComplaintFormData,
@@ -25,19 +25,66 @@ export const complaintService = {
     return all.filter(c => c.assignedStaffId === staffId);
   },
 
-  submit: (data: ComplaintFormData): Promise<Complaint> =>
-    apiFetch<Complaint>('/complaints', {
+  submit: (data: ComplaintFormData): Promise<Complaint> => {
+    const phone = data.phone?.trim() || '000-000-0000';
+    const auto = Boolean(data.automaticCategory);
+    const files = data.files?.filter(f => f.size > 0) ?? [];
+    if (files.length > 0) {
+      const fd = new FormData();
+      fd.append('patientName', data.patientName);
+      fd.append('email', data.email);
+      fd.append('phone', phone);
+      fd.append('automaticCategory', auto ? 'true' : 'false');
+      if (!auto && data.category) fd.append('category', data.category);
+      if (!auto && data.departmentId) fd.append('departmentId', data.departmentId);
+      fd.append('description', data.description);
+      for (const f of files) {
+        fd.append('files', f);
+      }
+      return apiFetch<Complaint>('/complaints', { method: 'POST', skipAuth: true, body: fd });
+    }
+    return apiFetch<Complaint>('/complaints', {
       method: 'POST',
       skipAuth: true,
       body: JSON.stringify({
         patientName: data.patientName,
         email: data.email,
-        phone: data.phone?.trim() || '000-000-0000',
-        category: data.category,
-        departmentId: data.departmentId,
+        phone,
+        automaticCategory: auto,
+        ...(!auto && data.category ? { category: data.category } : {}),
+        ...(!auto && data.departmentId ? { departmentId: data.departmentId } : {}),
         description: data.description,
       }),
-    }),
+    });
+  },
+
+  downloadAttachment: async (complaintId: string, attachmentId: string, fileName: string): Promise<void> => {
+    const url = `${API_BASE}/complaints/${encodeURIComponent(complaintId)}/attachments/${encodeURIComponent(attachmentId)}/download`;
+    const headers = new Headers();
+    const t = getToken();
+    if (t) headers.set('Authorization', `Bearer ${t}`);
+    const res = await fetch(url, { headers });
+    if (!res.ok) {
+      const text = await res.text();
+      let json: { error?: { code?: string; message?: string } } | undefined;
+      try {
+        json = text ? (JSON.parse(text) as { error?: { code?: string; message?: string } }) : undefined;
+      } catch {
+        /* ignore */
+      }
+      const code = json?.error?.code ?? 'REQUEST_FAILED';
+      const message = json?.error?.message ?? 'Download failed';
+      throw new ApiRequestError(res.status, code, message);
+    }
+    const blob = await res.blob();
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = href;
+    a.download = fileName;
+    a.rel = 'noopener';
+    a.click();
+    URL.revokeObjectURL(href);
+  },
 
   updateStatus: (id: string, status: ComplaintStatus): Promise<Complaint> =>
     apiFetch<Complaint>(`/complaints/${encodeURIComponent(id)}/status`, {
@@ -121,6 +168,7 @@ export type AuthUserDto = {
   email: string;
   name: string;
   role: 'patient' | 'staff' | 'admin';
+  phone?: string;
   departmentId?: string;
   jobTitle?: string;
 };

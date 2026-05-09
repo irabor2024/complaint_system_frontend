@@ -58,7 +58,9 @@ export async function apiFetch<T>(
 
   const headers = new Headers(init.headers);
   if (init.body !== undefined && init.body !== null && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
+    if (!(init.body instanceof FormData)) {
+      headers.set('Content-Type', 'application/json');
+    }
   }
   if (!skipAuth) {
     const t = getToken();

@@ -168,18 +168,50 @@ export type AuthUserDto = {
   email: string;
   name: string;
   role: 'patient' | 'staff' | 'admin';
+  twoFactorEnabled?: boolean;
   phone?: string;
   departmentId?: string;
   jobTitle?: string;
 };
 
+export type LoginApiResult =
+  | { token: string; user: AuthUserDto }
+  | { requiresTwoFactor: true; tempToken: string };
+
 export const authApi = {
-  login: (email: string, password: string): Promise<{ token: string; user: AuthUserDto }> =>
-    apiFetch<{ token: string; user: AuthUserDto }>('/auth/login', {
+  login: (email: string, password: string): Promise<LoginApiResult> =>
+    apiFetch<LoginApiResult>('/auth/login', {
       method: 'POST',
       skipAuth: true,
       body: JSON.stringify({ email, password }),
     }),
 
+  verifyTwoFactorLogin: (
+    tempToken: string,
+    code: string
+  ): Promise<{ token: string; user: AuthUserDto }> =>
+    apiFetch<{ token: string; user: AuthUserDto }>('/auth/2fa/login/verify', {
+      method: 'POST',
+      skipAuth: true,
+      body: JSON.stringify({ tempToken, code }),
+    }),
+
   me: (): Promise<AuthUserDto> => apiFetch<AuthUserDto>('/auth/me'),
+
+  twoFactorSetupInit: (): Promise<{ otpAuthUrl: string; manualEntryKey: string }> =>
+    apiFetch<{ otpAuthUrl: string; manualEntryKey: string }>('/auth/2fa/setup/init', {
+      method: 'POST',
+    }),
+
+  twoFactorSetupComplete: (code: string): Promise<{ twoFactorEnabled: true }> =>
+    apiFetch<{ twoFactorEnabled: true }>('/auth/2fa/setup/complete', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    }),
+
+  twoFactorDisable: (password: string): Promise<void> =>
+    apiFetch<void>('/auth/2fa/disable', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    }),
 };

@@ -23,6 +23,10 @@ export class UserRepository {
       where: { departmentId, role: 'STAFF' },
     });
   }
+
+  async update(id: string, data: Prisma.UserUpdateInput): Promise<User> {
+    return prisma.user.update({ where: { id }, data });
+  }
 }
 
 export const userRepository = new UserRepository();

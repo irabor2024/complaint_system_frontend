@@ -14,6 +14,10 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   JWT_EXPIRES_IN: z.string().default('7d'),
+  /** Short-lived JWT after password OK, before TOTP (e.g. 5m, 10m). */
+  JWT_2FA_EXPIRES_IN: z.string().default('5m'),
+  /** Issuer label shown in authenticator apps (otpauth URI). */
+  TOTP_ISSUER: z.string().min(1).max(64).default('SmartCare'),
   /** Comma-separated browser origins, or `*` to allow any (reflects request origin; use with care in production). */
   CORS_ORIGIN: z.string().default('*'),
   REDIS_URL: z.string().optional(),

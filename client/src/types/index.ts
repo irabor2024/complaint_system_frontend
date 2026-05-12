@@ -4,6 +4,8 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  /** Present after login / refresh from `/auth/me` */
+  twoFactorEnabled?: boolean;
   /** From account profile when present */
   phone?: string;
   role: Role;

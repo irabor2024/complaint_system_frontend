@@ -169,6 +169,7 @@ Serve the `client/dist` folder with any static host; point **`VITE_API_URL`** (b
 | **SMTP** | Set `MAIL_HOST`, `MAIL_USER`, `MAIL_PASS`, etc. If `MAIL_HOST` is empty, outbound mail is logged only. |
 | **Complaint uploads** | Stored under `server/UPLOAD_DIR` (default `uploads`). Created automatically on startup. |
 | **AI categorization** | In-process (no separate service). Toggle **`CATEGORIZATION_HF_ENABLED=false`** to skip downloading Transformers.js models and use local NLP only. |
+| **Two-factor (TOTP)** | Optional RFC 6238 second step after password. Enable under **Dashboard → Settings → Security**. Uses **`JWT_2FA_EXPIRES_IN`** (default `5m`) and **`TOTP_ISSUER`** (default `SmartCare`) in `server/.env`. |
 
 ---
 
